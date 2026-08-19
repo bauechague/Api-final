@@ -19,7 +19,20 @@ npm run dev
 
 El Repository es lo unico que toca Mongoose: busca y guarda datos, nada mas. El Service tiene las reglas del negocio (validaciones, que un admin no se pueda crear por POST, calcular el status del producto segun el stock, etc). Asi el Service no depende de Mongoose para nada, solo llama al Repository, y si el dia de mañana cambio de base de datos solo toco el Repository.
 
-Los roles y los estados de producto estan en `src/constants/index.js` como objetos, no como strings sueltos.
+Los roles, los estados de producto, pedido y entrega, y las prioridades estan en `src/constants/index.js` como objetos, no como strings sueltos.
+
+## Mocking (`/api/mocks`)
+
+Modulo aparte para generar datos de prueba, con las mismas capas que el resto (route -> controller -> service -> repository), usando los modelos y las constantes que ya estaban.
+
+Con GET generas datos simulados sin tocar la base: `/api/mocks/users?qty=5` (podes filtrar con `?role=driver`, admin no esta permitido), `/api/mocks/orders?qty=5` y `/api/mocks/deliveries?qty=5`. Cada entrega generada viene con su pedido y su repartidor (rol `driver`) asociados.
+
+Con POST `/api/mocks/seed?qty=10&type=users` insertas en Mongo de verdad. `type` puede ser `users` (default), `orders`, `deliveries` o `all`. Para `orders` usa clientes existentes (crea los que falten), para `deliveries` toma pedidos en estado `created` y repartidores existentes (idem, crea lo que falta) y al asignar la entrega actualiza el pedido a `assigned` con la referencia a la entrega. `all` corre los tres seeds seguidos.
+
+```bash
+curl "http://localhost:3000/api/mocks/users?qty=2"
+curl -X POST "http://localhost:3000/api/mocks/seed?type=all&qty=10"
+```
 
 ## Endpoints
 
@@ -44,3 +57,7 @@ Los roles y los estados de producto estan en `src/constants/index.js` como objet
 | POST   | /api/deliveries         | Crear entrega            |
 | PATCH  | /api/deliveries/:did/status | Actualizar estado entrega |
 | DELETE | /api/deliveries/:did    | Eliminar entrega         |
+| GET    | /api/mocks/users        | Generar usuarios simulados (no se guardan) |
+| GET    | /api/mocks/orders       | Generar pedidos simulados (no se guardan) |
+| GET    | /api/mocks/deliveries   | Generar entregas simuladas (no se guardan) |
+| POST   | /api/mocks/seed         | Insertar datos de prueba en MongoDB |

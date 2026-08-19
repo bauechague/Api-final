@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { DELIVERY_STATUS, PRIORITY } from '../constants/index.js';
 
 const deliverySchema = new mongoose.Schema({
   order: {
@@ -13,13 +14,13 @@ const deliverySchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'assigned', 'in_transit', 'delivered'],
-    default: 'pending'
+    enum: Object.values(DELIVERY_STATUS),
+    default: DELIVERY_STATUS.PENDING
   },
   priority: {
     type: String,
-    enum: ['low', 'normal', 'high'],
-    default: 'normal'
+    enum: Object.values(PRIORITY),
+    default: PRIORITY.NORMAL
   },
   assignedAt: {
     type: Date,
