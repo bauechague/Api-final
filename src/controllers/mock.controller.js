@@ -1,45 +1,40 @@
 import mockService from '../services/mock.service.js';
-import { parseQty } from '../utils/random.util.js';
 
 class MockController {
-  async getUsers(req, res) {
+  async getUsers(req, res, next) {
     try {
-      const qty = parseQty(req.query.qty);
-      const users = mockService.getMockUsers(qty, req.query.role);
+      const users = mockService.getMockUsers(req.query.qty, req.query.role);
       res.json(users);
     } catch (error) {
-      res.status(error.statusCode || 500).json({ error: error.message || 'Error del servidor' });
+      next(error);
     }
   }
 
-  async getOrders(req, res) {
+  async getOrders(req, res, next) {
     try {
-      const qty = parseQty(req.query.qty);
-      const orders = mockService.getMockOrders(qty);
+      const orders = mockService.getMockOrders(req.query.qty);
       res.json(orders);
     } catch (error) {
-      res.status(error.statusCode || 500).json({ error: error.message || 'Error del servidor' });
+      next(error);
     }
   }
 
-  async getDeliveries(req, res) {
+  async getDeliveries(req, res, next) {
     try {
-      const qty = parseQty(req.query.qty);
-      const deliveries = mockService.getMockDeliveries(qty);
+      const deliveries = mockService.getMockDeliveries(req.query.qty);
       res.json(deliveries);
     } catch (error) {
-      res.status(error.statusCode || 500).json({ error: error.message || 'Error del servidor' });
+      next(error);
     }
   }
 
-  async seed(req, res) {
+  async seed(req, res, next) {
     try {
-      const qty = parseQty(req.query.qty);
       const type = req.query.type || 'users';
-      const result = await mockService.seed(type, qty);
+      const result = await mockService.seed(type, req.query.qty);
       res.status(201).json(result);
     } catch (error) {
-      res.status(error.statusCode || 500).json({ error: error.message || 'Error del servidor' });
+      next(error);
     }
   }
 }

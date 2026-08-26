@@ -1,0 +1,21 @@
+export const ERROR_CODES = Object.freeze({
+  USER_NOT_FOUND: { statusCode: 404, message: 'Usuario no encontrado' },
+  PRODUCT_NOT_FOUND: { statusCode: 404, message: 'Producto no encontrado' },
+  ORDER_NOT_FOUND: { statusCode: 404, message: 'Pedido no encontrado' },
+  DELIVERY_NOT_FOUND: { statusCode: 404, message: 'Entrega no encontrada' },
+  MISSING_FIELDS: { statusCode: 400, message: 'Faltan datos obligatorios' },
+  INVALID_ROLE: { statusCode: 400, message: 'Rol invalido' },
+  INVALID_STATUS: { statusCode: 400, message: 'Estado invalido' },
+  INVALID_PRICE: { statusCode: 400, message: 'El precio no puede ser negativo' },
+  INVALID_STOCK: { statusCode: 400, message: 'El stock no puede ser negativo' },
+  INVALID_MOCK_QTY: { statusCode: 400, message: 'La cantidad de datos de prueba es invalida' },
+  INVALID_MOCK_TYPE: { statusCode: 400, message: 'Tipo de coleccion invalido' },
+  EMAIL_ALREADY_REGISTERED: { statusCode: 409, message: 'El email ya esta registrado' },
+  FORBIDDEN_ROLE: { statusCode: 403, message: 'No tenes permiso para esta accion' },
+  ORDER_ALREADY_PROCESSED: { statusCode: 409, message: 'El pedido ya fue asignado o procesado' },
+  ORDER_ALREADY_DELIVERED: { statusCode: 409, message: 'El pedido ya fue entregado' },
+  DELIVERY_ALREADY_COMPLETED: { statusCode: 409, message: 'La entrega ya fue completada' },
+  MOCK_SEED_FAILED: { statusCode: 500, message: 'Fallo la carga de datos de prueba en MongoDB' },
+  VALIDATION_ERROR: { statusCode: 400, message: 'Datos invalidos' },
+  INTERNAL_SERVER_ERROR: { statusCode: 500, message: 'Error del servidor' }
+});

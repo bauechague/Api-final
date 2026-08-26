@@ -1,5 +1,5 @@
 import productRepository from '../repositories/product.repository.js';
-import { createHttpError } from '../utils/http-error.js';
+import { CustomError } from '../errors/custom-error.js';
 import { PRODUCT_STATUS } from '../constants/index.js';
 
 function resolveStatusFromStock(stock) {
@@ -14,20 +14,20 @@ class ProductService {
   async getProductById(id) {
     const product = await productRepository.findById(id);
     if (!product) {
-      throw createHttpError(404, 'Producto no encontrado');
+      throw new CustomError('PRODUCT_NOT_FOUND');
     }
     return product;
   }
 
   async createProduct({ name, description, price, stock, category, status }) {
     if (!name || price === undefined || stock === undefined) {
-      throw createHttpError(400, 'Faltan datos obligatorios (name, price, stock)');
+      throw new CustomError('MISSING_FIELDS', 'Faltan datos obligatorios (name, price, stock)');
     }
     if (price < 0) {
-      throw createHttpError(400, 'El precio no puede ser negativo');
+      throw new CustomError('INVALID_PRICE');
     }
     if (stock < 0) {
-      throw createHttpError(400, 'El stock no puede ser negativo');
+      throw new CustomError('INVALID_STOCK');
     }
 
     return productRepository.create({
@@ -43,14 +43,14 @@ class ProductService {
   async updateProduct(id, { name, description, price, stock, category, status }) {
     const product = await productRepository.findById(id);
     if (!product) {
-      throw createHttpError(404, 'Producto no encontrado');
+      throw new CustomError('PRODUCT_NOT_FOUND');
     }
 
     if (price !== undefined && price < 0) {
-      throw createHttpError(400, 'El precio no puede ser negativo');
+      throw new CustomError('INVALID_PRICE');
     }
     if (stock !== undefined && stock < 0) {
-      throw createHttpError(400, 'El stock no puede ser negativo');
+      throw new CustomError('INVALID_STOCK');
     }
 
     const updates = {};
@@ -72,7 +72,7 @@ class ProductService {
   async deleteProduct(id) {
     const deletedProduct = await productRepository.deleteById(id);
     if (!deletedProduct) {
-      throw createHttpError(404, 'Producto no encontrado');
+      throw new CustomError('PRODUCT_NOT_FOUND');
     }
     return deletedProduct;
   }

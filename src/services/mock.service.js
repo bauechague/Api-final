@@ -1,8 +1,11 @@
 import mongoose from 'mongoose';
 import mockRepository from '../repositories/mock.repository.js';
-import { createHttpError } from '../utils/http-error.js';
+import { CustomError } from '../errors/custom-error.js';
 import { randomInt, randomItem, randomSuffix } from '../utils/random.util.js';
 import { ROLES, ORDER_STATUS, DELIVERY_STATUS, PRIORITY } from '../constants/index.js';
+
+const DEFAULT_QTY = 5;
+const MAX_QTY = 50;
 
 const FIRST_NAMES = ['Ana', 'Luis', 'Carla', 'Diego', 'Marta', 'Pablo', 'Sofia', 'Juan', 'Valentina', 'Nicolas', 'Camila', 'Mateo', 'Lucia', 'Franco', 'Julieta', 'Bruno'];
 const LAST_NAMES = ['Perez', 'Gomez', 'Rodriguez', 'Fernandez', 'Lopez', 'Diaz', 'Martinez', 'Sanchez', 'Romero', 'Torres', 'Flores', 'Acosta'];
@@ -10,6 +13,31 @@ const STREETS = ['Av. Corrientes', 'Calle San Martin', 'Av. Rivadavia', 'Bv. Mit
 const ITEM_NAMES = ['Caja chica', 'Paquete mediano', 'Sobre de documentos', 'Electrodomestico', 'Indumentaria', 'Libros', 'Accesorios', 'Herramientas'];
 
 const ASSIGNABLE_ROLES = [ROLES.CUSTOMER, ROLES.DRIVER, ROLES.STORE];
+const SEED_TYPES = ['users', 'orders', 'deliveries', 'all'];
+
+function validateQty(value) {
+  if (value === undefined) {
+    return DEFAULT_QTY;
+  }
+
+  const qty = Number(value);
+  if (!Number.isInteger(qty) || qty <= 0) {
+    throw new CustomError('INVALID_MOCK_QTY', 'La cantidad debe ser un numero entero positivo');
+  }
+  if (qty > MAX_QTY) {
+    throw new CustomError('INVALID_MOCK_QTY', `La cantidad maxima permitida es ${MAX_QTY}`);
+  }
+
+  return qty;
+}
+
+async function trySeed(action, description) {
+  try {
+    return await action();
+  } catch (error) {
+    throw new CustomError('MOCK_SEED_FAILED', `No se pudo ${description}: ${error.message}`);
+  }
+}
 
 function slugify(text) {
   return text
@@ -71,25 +99,31 @@ function stripId({ _id, ...rest }) {
 }
 
 class MockService {
-  getMockUsers(qty, role) {
+  getMockUsers(qtyInput, role) {
+    const qty = validateQty(qtyInput);
+
     if (role && !Object.values(ROLES).includes(role)) {
-      throw createHttpError(400, `Rol invalido: ${role}`);
+      throw new CustomError('INVALID_ROLE', `Rol invalido: ${role}`);
     }
     if (role === ROLES.ADMIN) {
-      throw createHttpError(403, 'No se pueden simular usuarios admin');
+      throw new CustomError('FORBIDDEN_ROLE', 'No se pueden simular usuarios admin');
     }
 
     return Array.from({ length: qty }, () => generateUser(role));
   }
 
-  getMockOrders(qty) {
+  getMockOrders(qtyInput) {
+    const qty = validateQty(qtyInput);
+
     return Array.from({ length: qty }, () => {
       const customer = generateUser(ROLES.CUSTOMER);
       return generateOrder(customer, randomItem(Object.values(ORDER_STATUS)));
     });
   }
 
-  getMockDeliveries(qty) {
+  getMockDeliveries(qtyInput) {
+    const qty = validateQty(qtyInput);
+
     return Array.from({ length: qty }, () => {
       const customer = generateUser(ROLES.CUSTOMER);
       const order = generateOrder(customer, ORDER_STATUS.ASSIGNED);
@@ -98,18 +132,21 @@ class MockService {
     });
   }
 
-  async seedUsers(qty) {
+  async seedUsers(qtyInput) {
+    const qty = validateQty(qtyInput);
     const users = this.getMockUsers(qty).map(stripId);
-    const inserted = await mockRepository.insertUsers(users);
+    const inserted = await trySeed(() => mockRepository.insertUsers(users), 'insertar los usuarios de prueba');
     return { insertados: inserted.length, coleccion: 'usuarios' };
   }
 
-  async seedOrders(qty) {
+  async seedOrders(qtyInput) {
+    const qty = validateQty(qtyInput);
+
     let customers = await mockRepository.findUsersExcludingRole(ROLES.DRIVER, qty);
     if (customers.length < qty) {
       const missing = qty - customers.length;
       const newCustomers = this.getMockUsers(missing, ROLES.CUSTOMER).map(stripId);
-      const insertedCustomers = await mockRepository.insertUsers(newCustomers);
+      const insertedCustomers = await trySeed(() => mockRepository.insertUsers(newCustomers), 'crear los clientes necesarios');
       customers = customers.concat(insertedCustomers);
     }
 
@@ -118,11 +155,13 @@ class MockService {
       return stripId(generateOrder(customer, ORDER_STATUS.CREATED));
     });
 
-    const inserted = await mockRepository.insertOrders(orders);
+    const inserted = await trySeed(() => mockRepository.insertOrders(orders), 'insertar los pedidos de prueba');
     return { insertados: inserted.length, coleccion: 'pedidos' };
   }
 
-  async seedDeliveries(qty) {
+  async seedDeliveries(qtyInput) {
+    const qty = validateQty(qtyInput);
+
     let availableOrders = await mockRepository.findOrdersByStatus(ORDER_STATUS.CREATED, qty);
     if (availableOrders.length < qty) {
       const missing = qty - availableOrders.length;
@@ -135,7 +174,7 @@ class MockService {
     if (drivers.length < qty) {
       const missing = qty - drivers.length;
       const newDrivers = this.getMockUsers(missing, ROLES.DRIVER).map(stripId);
-      const insertedDrivers = await mockRepository.insertUsers(newDrivers);
+      const insertedDrivers = await trySeed(() => mockRepository.insertUsers(newDrivers), 'crear los repartidores necesarios');
       drivers = drivers.concat(insertedDrivers);
     }
 
@@ -144,15 +183,16 @@ class MockService {
       return stripId(generateDelivery(order, driver, DELIVERY_STATUS.ASSIGNED));
     });
 
-    const inserted = await mockRepository.insertDeliveries(deliveries);
-    await Promise.all(inserted.map((delivery) =>
+    const inserted = await trySeed(() => mockRepository.insertDeliveries(deliveries), 'insertar las entregas de prueba');
+    await trySeed(() => Promise.all(inserted.map((delivery) =>
       mockRepository.linkDeliveryToOrder(delivery.order, delivery._id, ORDER_STATUS.ASSIGNED)
-    ));
+    )), 'asociar las entregas a sus pedidos');
 
     return { insertados: inserted.length, coleccion: 'entregas' };
   }
 
-  async seedAll(qty) {
+  async seedAll(qtyInput) {
+    const qty = validateQty(qtyInput);
     const usuarios = await this.seedUsers(qty);
     const pedidos = await this.seedOrders(qty);
     const entregas = await this.seedDeliveries(qty);
@@ -160,6 +200,10 @@ class MockService {
   }
 
   async seed(type, qty) {
+    if (!SEED_TYPES.includes(type)) {
+      throw new CustomError('INVALID_MOCK_TYPE', `Tipo de coleccion invalido: ${type}`);
+    }
+
     switch (type) {
       case 'users':
         return this.seedUsers(qty);
@@ -169,8 +213,6 @@ class MockService {
         return this.seedDeliveries(qty);
       case 'all':
         return this.seedAll(qty);
-      default:
-        throw createHttpError(400, `Tipo de coleccion invalido: ${type}`);
     }
   }
 }

@@ -34,6 +34,26 @@ curl "http://localhost:3000/api/mocks/users?qty=2"
 curl -X POST "http://localhost:3000/api/mocks/seed?type=all&qty=10"
 ```
 
+## Manejo de errores
+
+Los services son los que detectan el problema y tiran un `CustomError` (`src/errors/custom-error.js`) con un codigo que sale del diccionario `src/errors/error-codes.js` (usuario no encontrado, pedido no encontrado, estado invalido, cantidad de mocks invalida, etc, cada uno con su status y su mensaje). Los controllers ya no arman ninguna respuesta de error, solo hacen `next(error)`. El unico que responde es el middleware `src/middlewares/error-handler.middleware.js`, al final de `app.js`/`server.js`, asi que toda respuesta de error tiene siempre la misma forma:
+
+```json
+{ "error": { "code": "ORDER_NOT_FOUND", "message": "Pedido no encontrado" } }
+```
+
+Si se cuela un error que no es un `CustomError` (un `ValidationError` o `CastError` de Mongoose, por ejemplo), el middleware igual lo mapea a esa misma estructura en vez de devolver el error crudo.
+
+Para probar casos invalidos:
+
+```bash
+curl http://localhost:3000/api/orders/000000000000000000000000
+curl "http://localhost:3000/api/mocks/users?qty=-5"
+curl -X POST "http://localhost:3000/api/mocks/seed?type=noexiste"
+```
+
+En mocks: `qty` negativo, en cero, no numerico o mayor a 50 devuelve `INVALID_MOCK_QTY`; un `type` de seed que no sea `users`, `orders`, `deliveries` o `all` devuelve `INVALID_MOCK_TYPE`; y si falla la insercion en Mongo el service lo atrapa y devuelve `MOCK_SEED_FAILED` en vez del error crudo.
+
 ## Endpoints
 
 | Metodo | Ruta                    | Descripcion              |
