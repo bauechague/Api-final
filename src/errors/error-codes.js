@@ -3,6 +3,7 @@ export const ERROR_CODES = Object.freeze({
   PRODUCT_NOT_FOUND: { statusCode: 404, message: 'Producto no encontrado' },
   ORDER_NOT_FOUND: { statusCode: 404, message: 'Pedido no encontrado' },
   DELIVERY_NOT_FOUND: { statusCode: 404, message: 'Entrega no encontrada' },
+  ROUTE_NOT_FOUND: { statusCode: 404, message: 'Ruta no encontrada' },
   MISSING_FIELDS: { statusCode: 400, message: 'Faltan datos obligatorios' },
   INVALID_ROLE: { statusCode: 400, message: 'Rol invalido' },
   INVALID_STATUS: { statusCode: 400, message: 'Estado invalido' },

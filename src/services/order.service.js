@@ -1,6 +1,7 @@
 import orderRepository from '../repositories/order.repository.js';
 import userRepository from '../repositories/user.repository.js';
 import { CustomError } from '../errors/custom-error.js';
+import logger from '../config/logger.config.js';
 import { ROLES, ORDER_STATUS, PRIORITY } from '../constants/index.js';
 
 class OrderService {
@@ -46,8 +47,8 @@ class OrderService {
       status: ORDER_STATUS.CREATED
     });
 
-    console.log(`[EMAIL SIMULADO] Enviando confirmacion al usuario ${customer}...`);
-    console.log(`[EMAIL SIMULADO] Tu pedido ${newOrder._id} fue creado. Total: $${total}`);
+    logger.debug(`[EMAIL SIMULADO] Enviando confirmacion al usuario ${customer}...`);
+    logger.info(`Pedido ${newOrder._id} creado correctamente. Total: $${total}`);
 
     const shippingCost = newOrder.items.reduce((acc, item) => acc + item.quantity * 10, 0);
 
@@ -71,7 +72,7 @@ class OrderService {
     }
 
     const updatedOrder = await orderRepository.updateById(id, { status });
-    console.log(`Pedido ${updatedOrder._id} actualizado a estado: ${status}`);
+    logger.info(`Pedido ${updatedOrder._id} actualizado a estado: ${status}`);
     return updatedOrder;
   }
 

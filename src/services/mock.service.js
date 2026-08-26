@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import mockRepository from '../repositories/mock.repository.js';
 import { CustomError } from '../errors/custom-error.js';
+import logger from '../config/logger.config.js';
 import { randomInt, randomItem, randomSuffix } from '../utils/random.util.js';
 import { ROLES, ORDER_STATUS, DELIVERY_STATUS, PRIORITY } from '../constants/index.js';
 
@@ -136,6 +137,7 @@ class MockService {
     const qty = validateQty(qtyInput);
     const users = this.getMockUsers(qty).map(stripId);
     const inserted = await trySeed(() => mockRepository.insertUsers(users), 'insertar los usuarios de prueba');
+    logger.info(`Se generaron ${inserted.length} usuarios de prueba`);
     return { insertados: inserted.length, coleccion: 'usuarios' };
   }
 
@@ -156,6 +158,7 @@ class MockService {
     });
 
     const inserted = await trySeed(() => mockRepository.insertOrders(orders), 'insertar los pedidos de prueba');
+    logger.info(`Se generaron ${inserted.length} pedidos de prueba`);
     return { insertados: inserted.length, coleccion: 'pedidos' };
   }
 
@@ -188,6 +191,7 @@ class MockService {
       mockRepository.linkDeliveryToOrder(delivery.order, delivery._id, ORDER_STATUS.ASSIGNED)
     )), 'asociar las entregas a sus pedidos');
 
+    logger.info(`Se generaron ${inserted.length} entregas de prueba`);
     return { insertados: inserted.length, coleccion: 'entregas' };
   }
 

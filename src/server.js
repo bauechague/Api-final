@@ -3,11 +3,14 @@ import cors from 'cors';
 import mongoose from 'mongoose';
 
 import config from './config/env.config.js';
+import logger from './config/logger.config.js';
 import usersRouter from './routes/users.routes.js';
 import ordersRouter from './routes/orders.routes.js';
 import deliveriesRouter from './routes/deliveries.routes.js';
 import productsRouter from './routes/products.routes.js';
 import mocksRouter from './routes/mocks.routes.js';
+import loggerRouter from './routes/logger.routes.js';
+import notFoundHandler from './middlewares/not-found.middleware.js';
 import errorHandler from './middlewares/error-handler.middleware.js';
 
 
@@ -22,18 +25,20 @@ app.use('/api/orders', ordersRouter);
 app.use('/api/deliveries', deliveriesRouter);
 app.use('/api/products', productsRouter);
 app.use('/api/mocks', mocksRouter);
+app.use('/api/logger', loggerRouter);
 
+app.use(notFoundHandler);
 app.use(errorHandler);
 
 mongoose.connect(config.mongoUri)
   .then(() => {
-    console.log('Conectado a MongoDB');
+    logger.info('Conexion a MongoDB establecida');
     app.listen(config.port, () => {
-      console.log(`Servidor corriendo en puerto ${config.port}`);
+      logger.info(`Servidor ShipNow escuchando en el puerto ${config.port}`);
     });
   })
   .catch((error) => {
-    console.error('Error al conectar con MongoDB:', error.message);
+    logger.fatal(`No se pudo conectar a MongoDB: ${error.message}`);
     process.exit(1);
   });
 
