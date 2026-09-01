@@ -7,6 +7,7 @@ import deliveriesRouter from './routes/deliveries.routes.js';
 import productsRouter from './routes/products.routes.js';
 import mocksRouter from './routes/mocks.routes.js';
 import loggerRouter from './routes/logger.routes.js';
+import docsRouter from './routes/docs.routes.js';
 import notFoundHandler from './middlewares/not-found.middleware.js';
 import errorHandler from './middlewares/error-handler.middleware.js';
 
@@ -23,6 +24,7 @@ app.use('/api/deliveries', deliveriesRouter);
 app.use('/api/products', productsRouter);
 app.use('/api/mocks', mocksRouter);
 app.use('/api/logger', loggerRouter);
+app.use('/api/docs', docsRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

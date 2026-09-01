@@ -70,6 +70,12 @@ curl http://localhost:3000/api/logger/test
 
 Eso tira un log de cada nivel por consola, y los de `error`/`fatal` deberian aparecer tambien en `logs/error-<fecha>.log`.
 
+## Documentacion con Swagger
+
+Con el server levantado, la documentacion interactiva esta en `http://localhost:3000/api/docs`. El spec entero (info, tags, schemas y paths) esta armado a mano como un objeto en `src/config/swagger.config.js`, separado de las rutas; `src/routes/docs.routes.js` solo lo sirve con `swagger-ui-express`.
+
+Esta documentado por tags: Users, Orders, Deliveries, Mocks y Logger (los mismos modulos de este README). Cada endpoint tiene su metodo, parametros, body si le corresponde, y las respuestas de error reales que puede devolver, con el `code` tal cual sale del diccionario de `src/errors/error-codes.js`. Los schemas reutilizables son User, Order, Delivery, OrderItem, ErrorResponse y MessageResponse (mas los de input para los POST/PATCH). En `/api/mocks/seed` se aclara que no lleva body, `qty` y `type` van por query. `/api/logger/test` esta marcado como herramienta interna, no como endpoint de negocio.
+
 ## Endpoints
 
 | Metodo | Ruta                    | Descripcion              |
@@ -98,3 +104,4 @@ Eso tira un log de cada nivel por consola, y los de `error`/`fatal` deberian apa
 | GET    | /api/mocks/deliveries   | Generar entregas simuladas (no se guardan) |
 | POST   | /api/mocks/seed         | Insertar datos de prueba en MongoDB |
 | GET    | /api/logger/test        | Generar un log de cada nivel (debug/http/info/warning/error/fatal) |
+| GET    | /api/docs               | Documentacion interactiva (Swagger UI) |
