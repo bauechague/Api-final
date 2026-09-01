@@ -20,6 +20,14 @@ class DeliveryRepository {
   async deleteById(id) {
     return Delivery.findByIdAndDelete(id);
   }
+
+  async attachReceipt(id, metadata) {
+    return Delivery.findByIdAndUpdate(
+      id,
+      { receipt: metadata },
+      { new: true, runValidators: true }
+    );
+  }
 }
 
 export default new DeliveryRepository();

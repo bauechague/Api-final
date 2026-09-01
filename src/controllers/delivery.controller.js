@@ -45,6 +45,15 @@ class DeliveryController {
       next(error);
     }
   }
+
+  async uploadReceipt(req, res, next) {
+    try {
+      const delivery = await deliveryService.attachReceipt(req.params.did, req.file);
+      res.status(201).json(delivery);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default new DeliveryController();

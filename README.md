@@ -70,11 +70,33 @@ curl http://localhost:3000/api/logger/test
 
 Eso tira un log de cada nivel por consola, y los de `error`/`fatal` deberian aparecer tambien en `logs/error-<fecha>.log`.
 
+## Carga de archivos
+
+Multer esta configurado en un solo lugar, `src/config/multer.config.js`, separado de las rutas: ahi se define donde se guarda cada archivo, como se le pone nombre (timestamp + sufijo random + extension original, para no pisar archivos ni depender del nombre que mande el cliente), que tipos de archivo se aceptan (`application/pdf`, `image/jpeg`, `image/png`, `image/webp`) y el tamano maximo (5MB). Las rutas solo importan el middleware ya armado.
+
+Los archivos quedan en `uploads/`, con una subcarpeta por entidad (`uploads/users`, `uploads/deliveries`), creadas solas la primera vez que se sube algo. `uploads/` esta en el `.gitignore`, no sube nada al repo.
+
+En Mongo solo se guardan los metadatos (`originalName`, `generatedName`, `path`, `mimeType`, `size`, `documentType`, `uploadedAt`), nunca el archivo. Esta forma esta en `src/models/file-metadata.schema.js`, compartida entre `User` (array `documents`) y `Delivery` (campo `receipt`).
+
+Dos endpoints:
+
+- `POST /api/users/:uid/documents`: multipart con campo `file` y campo `documentType` (`dni`, `license`, `insurance` u `other`). Verifica que el usuario exista, valida el archivo y el tipo de documento, y lo agrega al array `documents` del usuario.
+- `POST /api/deliveries/:did/receipt`: multipart con campo `file`. Verifica que la entrega exista, valida el archivo y lo guarda como `receipt` de esa entrega. Elegi que el comprobante cuelgue de la entrega (no del pedido) porque es la entidad que efectivamente representa la operacion de entrega.
+
+Si algo falla despues de que Multer ya escribio el archivo en disco (la entidad no existe, el tipo de documento es invalido), el service borra ese archivo huerfano antes de responder el error, para no dejar nada suelto sin asociar.
+
+Errores especificos: `FILE_REQUIRED`, `INVALID_FILE_TYPE`, `FILE_TOO_LARGE`, `UNEXPECTED_FILE_FIELD` (si el campo del archivo no es `file`) e `INVALID_DOCUMENT_TYPE`, todos con el mismo formato que el resto de los errores del proyecto. El logger registra la carga exitosa, cualquier error de subida y el intento de tipo de archivo no permitido.
+
+```bash
+curl -X POST http://localhost:3000/api/users/<uid>/documents -F "documentType=license" -F "file=@licencia.pdf"
+curl -X POST http://localhost:3000/api/deliveries/<did>/receipt -F "file=@comprobante.pdf"
+```
+
 ## Documentacion con Swagger
 
 Con el server levantado, la documentacion interactiva esta en `http://localhost:3000/api/docs`. El spec entero (info, tags, schemas y paths) esta armado a mano como un objeto en `src/config/swagger.config.js`, separado de las rutas; `src/routes/docs.routes.js` solo lo sirve con `swagger-ui-express`.
 
-Esta documentado por tags: Users, Orders, Deliveries, Mocks y Logger (los mismos modulos de este README). Cada endpoint tiene su metodo, parametros, body si le corresponde, y las respuestas de error reales que puede devolver, con el `code` tal cual sale del diccionario de `src/errors/error-codes.js`. Los schemas reutilizables son User, Order, Delivery, OrderItem, ErrorResponse y MessageResponse (mas los de input para los POST/PATCH). En `/api/mocks/seed` se aclara que no lleva body, `qty` y `type` van por query. `/api/logger/test` esta marcado como herramienta interna, no como endpoint de negocio.
+Esta documentado por tags: Users, Orders, Deliveries, Mocks y Logger (los mismos modulos de este README). Cada endpoint tiene su metodo, parametros, body si le corresponde, y las respuestas de error reales que puede devolver, con el `code` tal cual sale del diccionario de `src/errors/error-codes.js`. Los schemas reutilizables son User, Order, Delivery, OrderItem, FileMetadata, ErrorResponse y MessageResponse (mas los de input para los POST/PATCH). En `/api/mocks/seed` se aclara que no lleva body, `qty` y `type` van por query. `/api/logger/test` esta marcado como herramienta interna, no como endpoint de negocio. Los dos endpoints de carga de archivos estan como `multipart/form-data`, con el campo `file` y, en el de documentos de usuario, `documentType`.
 
 ## Testing
 
@@ -92,7 +114,7 @@ Completar `.env.test` con un `MONGODB_URI` que apunte a una base de test (por ej
 npm test
 ```
 
-Cubre Users, Orders, Deliveries, Mocks, Logger y la ruta de Swagger, con casos exitosos y de error (400/403/404/409 segun corresponda), chequeando siempre el status y el body, no solo que responda. Cada archivo en `test/` crea los datos que necesita (usuarios validos antes de pedidos, pedidos en `created` antes de entregas, etc) y al terminar borra lo que creo; al final de toda la corrida, `test/setup.js` dropea la base de test entera como limpieza general.
+Cubre Users, Orders, Deliveries, Mocks, Logger, la ruta de Swagger y la carga de archivos, con casos exitosos y de error (400/403/404/409 segun corresponda), chequeando siempre el status y el body, no solo que responda. Cada archivo en `test/` crea los datos que necesita (usuarios validos antes de pedidos, pedidos en `created` antes de entregas, etc) y al terminar borra lo que creo, incluidos los archivos subidos a `uploads/`; al final de toda la corrida, `test/setup.js` dropea la base de test entera como limpieza general.
 
 ## Endpoints
 
@@ -102,6 +124,7 @@ Cubre Users, Orders, Deliveries, Mocks, Logger y la ruta de Swagger, con casos e
 | GET    | /api/users/:uid         | Obtener usuario por ID   |
 | POST   | /api/users              | Crear usuario            |
 | DELETE | /api/users/:uid         | Eliminar usuario         |
+| POST   | /api/users/:uid/documents | Subir un documento del usuario |
 | GET    | /api/products           | Listar productos         |
 | GET    | /api/products/:pid      | Obtener producto por ID  |
 | POST   | /api/products           | Crear producto           |
@@ -117,6 +140,7 @@ Cubre Users, Orders, Deliveries, Mocks, Logger y la ruta de Swagger, con casos e
 | POST   | /api/deliveries         | Crear entrega            |
 | PATCH  | /api/deliveries/:did/status | Actualizar estado entrega |
 | DELETE | /api/deliveries/:did    | Eliminar entrega         |
+| POST   | /api/deliveries/:did/receipt | Subir el comprobante de una entrega |
 | GET    | /api/mocks/users        | Generar usuarios simulados (no se guardan) |
 | GET    | /api/mocks/orders       | Generar pedidos simulados (no se guardan) |
 | GET    | /api/mocks/deliveries   | Generar entregas simuladas (no se guardan) |

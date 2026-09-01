@@ -25,6 +25,14 @@ class UserRepository {
   async deleteById(id) {
     return User.findByIdAndDelete(id);
   }
+
+  async addDocument(id, metadata) {
+    return User.findByIdAndUpdate(
+      id,
+      { $push: { documents: metadata } },
+      { new: true, runValidators: true }
+    ).select(PUBLIC_FIELDS);
+  }
 }
 
 export default new UserRepository();

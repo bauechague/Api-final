@@ -1,8 +1,10 @@
+import fs from 'fs';
 import deliveryRepository from '../repositories/delivery.repository.js';
 import orderRepository from '../repositories/order.repository.js';
 import userRepository from '../repositories/user.repository.js';
 import { CustomError } from '../errors/custom-error.js';
 import logger from '../config/logger.config.js';
+import { buildFileMetadata } from '../utils/file-metadata.util.js';
 import { ROLES, ORDER_STATUS, DELIVERY_STATUS, PRIORITY } from '../constants/index.js';
 
 class DeliveryService {
@@ -98,6 +100,29 @@ class DeliveryService {
       throw new CustomError('DELIVERY_NOT_FOUND');
     }
     return deletedDelivery;
+  }
+
+  async attachReceipt(id, file) {
+    try {
+      const delivery = await deliveryRepository.findById(id);
+      if (!delivery) {
+        throw new CustomError('DELIVERY_NOT_FOUND');
+      }
+      if (!file) {
+        throw new CustomError('FILE_REQUIRED');
+      }
+
+      const metadata = buildFileMetadata(file);
+      const updatedDelivery = await deliveryRepository.attachReceipt(id, metadata);
+
+      logger.info(`Comprobante cargado para la entrega ${id}`);
+      return updatedDelivery;
+    } catch (error) {
+      if (file) {
+        fs.unlink(file.path, () => {});
+      }
+      throw error;
+    }
   }
 }
 

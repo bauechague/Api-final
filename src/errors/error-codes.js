@@ -17,6 +17,12 @@ export const ERROR_CODES = Object.freeze({
   ORDER_ALREADY_DELIVERED: { statusCode: 409, message: 'El pedido ya fue entregado' },
   DELIVERY_ALREADY_COMPLETED: { statusCode: 409, message: 'La entrega ya fue completada' },
   MOCK_SEED_FAILED: { statusCode: 500, message: 'Fallo la carga de datos de prueba en MongoDB' },
+  FILE_REQUIRED: { statusCode: 400, message: 'El archivo es obligatorio' },
+  INVALID_FILE_TYPE: { statusCode: 400, message: 'Tipo de archivo no permitido' },
+  FILE_TOO_LARGE: { statusCode: 400, message: 'El archivo supera el tamano maximo permitido' },
+  UNEXPECTED_FILE_FIELD: { statusCode: 400, message: 'El campo del archivo no es el esperado' },
+  INVALID_DOCUMENT_TYPE: { statusCode: 400, message: 'Tipo de documento invalido' },
+  FILE_SAVE_FAILED: { statusCode: 500, message: 'No se pudo guardar el archivo' },
   VALIDATION_ERROR: { statusCode: 400, message: 'Datos invalidos' },
   INTERNAL_SERVER_ERROR: { statusCode: 500, message: 'Error del servidor' }
 });

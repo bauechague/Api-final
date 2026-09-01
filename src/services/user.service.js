@@ -1,6 +1,9 @@
+import fs from 'fs';
 import userRepository from '../repositories/user.repository.js';
 import { CustomError } from '../errors/custom-error.js';
-import { ROLES } from '../constants/index.js';
+import logger from '../config/logger.config.js';
+import { buildFileMetadata } from '../utils/file-metadata.util.js';
+import { ROLES, DOCUMENT_TYPES } from '../constants/index.js';
 
 class UserService {
   async getAllUsers() {
@@ -44,6 +47,32 @@ class UserService {
       throw new CustomError('USER_NOT_FOUND');
     }
     return deletedUser;
+  }
+
+  async addDocument(id, file, documentType) {
+    try {
+      const user = await userRepository.findById(id);
+      if (!user) {
+        throw new CustomError('USER_NOT_FOUND');
+      }
+      if (!file) {
+        throw new CustomError('FILE_REQUIRED');
+      }
+      if (!documentType || !Object.values(DOCUMENT_TYPES).includes(documentType)) {
+        throw new CustomError('INVALID_DOCUMENT_TYPE');
+      }
+
+      const metadata = buildFileMetadata(file, documentType);
+      const updatedUser = await userRepository.addDocument(id, metadata);
+
+      logger.info(`Documento ${documentType} cargado para el usuario ${id}`);
+      return updatedUser;
+    } catch (error) {
+      if (file) {
+        fs.unlink(file.path, () => {});
+      }
+      throw error;
+    }
   }
 }
 

@@ -10,6 +10,22 @@ function errorResponse(description, code, message) {
   };
 }
 
+function multiErrorResponse(description, cases) {
+  const examples = {};
+  for (const [code, message] of Object.entries(cases)) {
+    examples[code] = { value: { error: { code, message } } };
+  }
+  return {
+    description,
+    content: {
+      'application/json': {
+        schema: { $ref: '#/components/schemas/ErrorResponse' },
+        examples
+      }
+    }
+  };
+}
+
 const schemas = {
   ErrorResponse: {
     type: 'object',
@@ -29,6 +45,18 @@ const schemas = {
       message: { type: 'string', example: 'Usuario eliminado' }
     }
   },
+  FileMetadata: {
+    type: 'object',
+    properties: {
+      originalName: { type: 'string', example: 'licencia.pdf' },
+      generatedName: { type: 'string', example: '1788290000000-a1b2c3d4.pdf' },
+      path: { type: 'string', example: 'uploads/users/1788290000000-a1b2c3d4.pdf' },
+      mimeType: { type: 'string', example: 'application/pdf' },
+      size: { type: 'integer', example: 204800 },
+      documentType: { type: 'string', enum: ['dni', 'license', 'insurance', 'other'], nullable: true, example: 'license' },
+      uploadedAt: { type: 'string', format: 'date-time' }
+    }
+  },
   OrderItem: {
     type: 'object',
     required: ['name', 'quantity', 'price'],
@@ -46,6 +74,7 @@ const schemas = {
       lastName: { type: 'string', example: 'Perez' },
       email: { type: 'string', format: 'email', example: 'ana.perez@test.com' },
       role: { type: 'string', enum: ['admin', 'customer', 'driver', 'store'], example: 'customer' },
+      documents: { type: 'array', items: { $ref: '#/components/schemas/FileMetadata' } },
       createdAt: { type: 'string', format: 'date-time' },
       updatedAt: { type: 'string', format: 'date-time' }
     }
@@ -103,6 +132,7 @@ const schemas = {
       priority: { type: 'string', enum: ['low', 'normal', 'high'], example: 'normal' },
       assignedAt: { type: 'string', format: 'date-time', nullable: true },
       deliveredAt: { type: 'string', format: 'date-time', nullable: true },
+      receipt: { allOf: [{ $ref: '#/components/schemas/FileMetadata' }], nullable: true },
       createdAt: { type: 'string', format: 'date-time' },
       updatedAt: { type: 'string', format: 'date-time' }
     }
@@ -193,6 +223,39 @@ const paths = {
       parameters: [idParam('uid', '64b7f7f7f7f7f7f7f7f7f7f7')],
       responses: {
         200: { description: 'Usuario eliminado', content: { 'application/json': { schema: { $ref: '#/components/schemas/MessageResponse' } } } },
+        404: errorResponse('Usuario no encontrado', 'USER_NOT_FOUND', 'Usuario no encontrado')
+      }
+    }
+  },
+  '/api/users/{uid}/documents': {
+    post: {
+      tags: ['Users'],
+      summary: 'Subir un documento de un usuario',
+      parameters: [idParam('uid', '64b7f7f7f7f7f7f7f7f7f7f7')],
+      requestBody: {
+        required: true,
+        content: {
+          'multipart/form-data': {
+            schema: {
+              type: 'object',
+              required: ['file', 'documentType'],
+              properties: {
+                file: { type: 'string', format: 'binary', description: 'PDF o imagen (jpeg/png/webp), maximo 5MB' },
+                documentType: { type: 'string', enum: ['dni', 'license', 'insurance', 'other'], example: 'license' }
+              }
+            }
+          }
+        }
+      },
+      responses: {
+        201: { description: 'Documento cargado, usuario actualizado', content: { 'application/json': { schema: { $ref: '#/components/schemas/User' } } } },
+        400: multiErrorResponse('Archivo o tipo de documento invalido', {
+          FILE_REQUIRED: 'El archivo es obligatorio',
+          INVALID_FILE_TYPE: 'Tipo de archivo no permitido: text/plain',
+          FILE_TOO_LARGE: 'El archivo supera el tamano maximo permitido',
+          UNEXPECTED_FILE_FIELD: 'El campo del archivo no es el esperado',
+          INVALID_DOCUMENT_TYPE: 'Tipo de documento invalido'
+        }),
         404: errorResponse('Usuario no encontrado', 'USER_NOT_FOUND', 'Usuario no encontrado')
       }
     }
@@ -328,6 +391,37 @@ const paths = {
         400: errorResponse('Estado invalido', 'INVALID_STATUS', 'Estado invalido'),
         404: errorResponse('Entrega no encontrada', 'DELIVERY_NOT_FOUND', 'Entrega no encontrada'),
         409: errorResponse('La entrega ya fue completada', 'DELIVERY_ALREADY_COMPLETED', 'La entrega ya fue completada')
+      }
+    }
+  },
+  '/api/deliveries/{did}/receipt': {
+    post: {
+      tags: ['Deliveries'],
+      summary: 'Subir el comprobante de una entrega',
+      parameters: [idParam('did', '64b7f7f7f7f7f7f7f7f7f7f9')],
+      requestBody: {
+        required: true,
+        content: {
+          'multipart/form-data': {
+            schema: {
+              type: 'object',
+              required: ['file'],
+              properties: {
+                file: { type: 'string', format: 'binary', description: 'PDF o imagen (jpeg/png/webp), maximo 5MB' }
+              }
+            }
+          }
+        }
+      },
+      responses: {
+        201: { description: 'Comprobante cargado, entrega actualizada', content: { 'application/json': { schema: { $ref: '#/components/schemas/Delivery' } } } },
+        400: multiErrorResponse('Archivo invalido', {
+          FILE_REQUIRED: 'El archivo es obligatorio',
+          INVALID_FILE_TYPE: 'Tipo de archivo no permitido: text/plain',
+          FILE_TOO_LARGE: 'El archivo supera el tamano maximo permitido',
+          UNEXPECTED_FILE_FIELD: 'El campo del archivo no es el esperado'
+        }),
+        404: errorResponse('Entrega no encontrada', 'DELIVERY_NOT_FOUND', 'Entrega no encontrada')
       }
     }
   },

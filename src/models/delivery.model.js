@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { DELIVERY_STATUS, PRIORITY } from '../constants/index.js';
+import fileMetadataSchema from './file-metadata.schema.js';
 
 const deliverySchema = new mongoose.Schema({
   order: {
@@ -28,6 +29,10 @@ const deliverySchema = new mongoose.Schema({
   },
   deliveredAt: {
     type: Date,
+    default: null
+  },
+  receipt: {
+    type: fileMetadataSchema,
     default: null
   }
 }, {

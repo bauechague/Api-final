@@ -31,3 +31,10 @@ export const PRIORITY = Object.freeze({
   NORMAL: 'normal',
   HIGH: 'high'
 });
+
+export const DOCUMENT_TYPES = Object.freeze({
+  DNI: 'dni',
+  LICENSE: 'license',
+  INSURANCE: 'insurance',
+  OTHER: 'other'
+});

@@ -1,3 +1,4 @@
+import multer from 'multer';
 import { CustomError } from '../errors/custom-error.js';
 import { ERROR_CODES } from '../errors/error-codes.js';
 import logger from '../config/logger.config.js';
@@ -7,6 +8,14 @@ export function errorHandler(error, req, res, next) {
     logger.warning(`${error.code}: ${error.message}`);
     return res.status(error.statusCode).json({
       error: { code: error.code, message: error.message }
+    });
+  }
+
+  if (error instanceof multer.MulterError) {
+    const code = error.code === 'LIMIT_FILE_SIZE' ? 'FILE_TOO_LARGE' : 'UNEXPECTED_FILE_FIELD';
+    logger.warning(`${code}: ${error.message}`);
+    return res.status(ERROR_CODES[code].statusCode).json({
+      error: { code, message: ERROR_CODES[code].message }
     });
   }
 

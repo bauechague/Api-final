@@ -36,6 +36,15 @@ class UserController {
       next(error);
     }
   }
+
+  async uploadDocument(req, res, next) {
+    try {
+      const user = await userService.addDocument(req.params.uid, req.file, req.body.documentType);
+      res.status(201).json(user);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default new UserController();
