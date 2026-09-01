@@ -76,6 +76,24 @@ Con el server levantado, la documentacion interactiva esta en `http://localhost:
 
 Esta documentado por tags: Users, Orders, Deliveries, Mocks y Logger (los mismos modulos de este README). Cada endpoint tiene su metodo, parametros, body si le corresponde, y las respuestas de error reales que puede devolver, con el `code` tal cual sale del diccionario de `src/errors/error-codes.js`. Los schemas reutilizables son User, Order, Delivery, OrderItem, ErrorResponse y MessageResponse (mas los de input para los POST/PATCH). En `/api/mocks/seed` se aclara que no lleva body, `qty` y `type` van por query. `/api/logger/test` esta marcado como herramienta interna, no como endpoint de negocio.
 
+## Testing
+
+Tests funcionales con Mocha (organiza y corre), Chai (asserts) y Supertest (pega contra la app de Express sin levantar puerto, importando directo `src/app.js`).
+
+Corren contra su propia base, separada de la de desarrollo, con su propio archivo de entorno:
+
+```bash
+cp .env.test.example .env.test
+```
+
+Completar `.env.test` con un `MONGODB_URI` que apunte a una base de test (por ejemplo `mongodb://localhost:27017/shipnow_test`, nunca la misma que uses en desarrollo). El script de test fuerza `NODE_ENV=test` con `cross-env`, y con eso `env.config.js` carga `.env.test` en vez de `.env`. Si por lo que sea corre con otro `NODE_ENV`, el setup de los tests corta antes de tocar la base.
+
+```bash
+npm test
+```
+
+Cubre Users, Orders, Deliveries, Mocks, Logger y la ruta de Swagger, con casos exitosos y de error (400/403/404/409 segun corresponda), chequeando siempre el status y el body, no solo que responda. Cada archivo en `test/` crea los datos que necesita (usuarios validos antes de pedidos, pedidos en `created` antes de entregas, etc) y al terminar borra lo que creo; al final de toda la corrida, `test/setup.js` dropea la base de test entera como limpieza general.
+
 ## Endpoints
 
 | Metodo | Ruta                    | Descripcion              |

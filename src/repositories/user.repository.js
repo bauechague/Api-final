@@ -17,7 +17,9 @@ class UserRepository {
   }
 
   async create(userData) {
-    return User.create(userData);
+    const user = await User.create(userData);
+    const { password, ...publicUser } = user.toObject();
+    return publicUser;
   }
 
   async deleteById(id) {
