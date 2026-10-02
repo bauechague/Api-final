@@ -43,6 +43,13 @@ const logger = winston.createLogger({
       filename: 'error-%DATE%.log',
       datePattern: 'YYYY-MM-DD',
       maxFiles: '14d'
+    }),
+    new DailyRotateFile({
+      level: minLevel,
+      dirname: 'logs',
+      filename: 'combined-%DATE%.log',
+      datePattern: 'YYYY-MM-DD',
+      maxFiles: '14d'
     })
   ]
 });

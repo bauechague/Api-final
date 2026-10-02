@@ -58,7 +58,7 @@ En mocks: `qty` negativo, en cero, no numerico o mayor a 50 devuelve `INVALID_MO
 
 El logger es Winston (`src/config/logger.config.js`), configurado una sola vez ahi y usado desde cualquier archivo importandolo. Niveles, de mas grave a menos: `fatal`, `error`, `warning`, `info`, `http`, `debug`.
 
-En desarrollo (`NODE_ENV=development`) se loguea desde `debug` para arriba, en produccion solo desde `info` (no se ven `http` ni `debug`). Por consola sale todo coloreado; a archivo solo van `error` y `fatal`, en `logs/error-<fecha>.log`, con rotacion diaria y un maximo de 14 dias guardados (usa `winston-daily-rotate-file`). La carpeta `logs/` esta en el `.gitignore`, no se sube nada de ahi.
+En desarrollo (`NODE_ENV=development`) se loguea desde `debug` para arriba, en produccion solo desde `info` (no se ven `http` ni `debug`). Por consola sale todo coloreado. A archivo van dos rotaciones diarias (usa `winston-daily-rotate-file`, maximo 14 dias guardados): `logs/error-<fecha>.log` con solo `error` y `fatal`, y `logs/combined-<fecha>.log` con toda la actividad desde el nivel minimo del ambiente. La carpeta `logs/` esta en el `.gitignore`, no se sube nada de ahi.
 
 El middleware de errores loguea el `CustomError` (o `ValidationError`/`CastError`) como `warning` (son casos esperados del negocio) y cualquier otro error no controlado como `error`. Una falla al conectar a MongoDB en el arranque se loguea como `fatal`.
 
@@ -68,7 +68,17 @@ Para probar que los 6 niveles anden:
 curl http://localhost:3000/api/logger/test
 ```
 
-Eso tira un log de cada nivel por consola, y los de `error`/`fatal` deberian aparecer tambien en `logs/error-<fecha>.log`.
+Eso tira un log de cada nivel por consola, y los de `error`/`fatal` deberian aparecer tambien en `logs/error-<fecha>.log` (y todos en `logs/combined-<fecha>.log`).
+
+## Health check
+
+Lo deje como ruta aparte del resto (`src/routes/health.routes.js` con su propio controller), para no mezclar una herramienta de infraestructura con los endpoints de negocio. Chequea si la conexion a MongoDB esta activa (`mongoose.connection.readyState`) y con eso responde si el servicio esta realmente en condiciones, no solo si el proceso esta vivo:
+
+```bash
+curl http://localhost:3000/api/health
+```
+
+Con la base conectada responde `200` con `{ "status": "ok", "uptime": ..., "db": "connected", "timestamp": ... }`. Si Mongo se cayo responde `503` con `status` y `db` en `error`/`disconnected`.
 
 ## Carga de archivos
 
@@ -96,7 +106,7 @@ curl -X POST http://localhost:3000/api/deliveries/<did>/receipt -F "file=@compro
 
 Con el server levantado, la documentacion interactiva esta en `http://localhost:3000/api/docs`. El spec entero (info, tags, schemas y paths) esta armado a mano como un objeto en `src/config/swagger.config.js`, separado de las rutas; `src/routes/docs.routes.js` solo lo sirve con `swagger-ui-express`.
 
-Esta documentado por tags: Users, Orders, Deliveries, Mocks y Logger (los mismos modulos de este README). Cada endpoint tiene su metodo, parametros, body si le corresponde, y las respuestas de error reales que puede devolver, con el `code` tal cual sale del diccionario de `src/errors/error-codes.js`. Los schemas reutilizables son User, Order, Delivery, OrderItem, FileMetadata, ErrorResponse y MessageResponse (mas los de input para los POST/PATCH). En `/api/mocks/seed` se aclara que no lleva body, `qty` y `type` van por query. `/api/logger/test` esta marcado como herramienta interna, no como endpoint de negocio. Los dos endpoints de carga de archivos estan como `multipart/form-data`, con el campo `file` y, en el de documentos de usuario, `documentType`.
+Esta documentado por tags: Users, Orders, Deliveries, Mocks, Logger y Health (los mismos modulos de este README). Cada endpoint tiene su metodo, parametros, body si le corresponde, y las respuestas de error reales que puede devolver, con el `code` tal cual sale del diccionario de `src/errors/error-codes.js`. Los schemas reutilizables son User, Order, Delivery, OrderItem, FileMetadata, ErrorResponse y MessageResponse (mas los de input para los POST/PATCH). En `/api/mocks/seed` se aclara que no lleva body, `qty` y `type` van por query. `/api/logger/test` esta marcado como herramienta interna, no como endpoint de negocio. Los dos endpoints de carga de archivos estan como `multipart/form-data`, con el campo `file` y, en el de documentos de usuario, `documentType`.
 
 ## Testing
 
@@ -114,7 +124,30 @@ Completar `.env.test` con un `MONGODB_URI` que apunte a una base de test (por ej
 npm test
 ```
 
-Cubre Users, Orders, Deliveries, Mocks, Logger, la ruta de Swagger y la carga de archivos, con casos exitosos y de error (400/403/404/409 segun corresponda), chequeando siempre el status y el body, no solo que responda. Cada archivo en `test/` crea los datos que necesita (usuarios validos antes de pedidos, pedidos en `created` antes de entregas, etc) y al terminar borra lo que creo, incluidos los archivos subidos a `uploads/`; al final de toda la corrida, `test/setup.js` dropea la base de test entera como limpieza general.
+Cubre Users, Orders, Deliveries, Mocks, Logger, Health, la ruta de Swagger y la carga de archivos, con casos exitosos y de error (400/403/404/409 segun corresponda), chequeando siempre el status y el body, no solo que responda. Cada archivo en `test/` crea los datos que necesita (usuarios validos antes de pedidos, pedidos en `created` antes de entregas, etc) y al terminar borra lo que creo, incluidos los archivos subidos a `uploads/`; al final de toda la corrida, `test/setup.js` dropea la base de test entera como limpieza general.
+
+## Docker
+
+Arme el `Dockerfile` en dos etapas: una instala las dependencias de produccion (`npm ci --omit=dev`) y la otra copia solo esos `node_modules` y el codigo de `src`, sin devDependencies ni archivos de desarrollo (lo que no tiene que entrar en la imagen esta en `.dockerignore`).
+
+Con `docker-compose up` se levanta la API junto con su propia instancia de MongoDB, sin depender de tener Mongo instalado aparte. Le puse `healthcheck` al servicio de Mongo y `depends_on: condition: service_healthy` en la API para que no intente conectarse hasta que la base este realmente lista, porque si no con mala suerte la API arranca mientras Mongo todavia esta inicializando y explota la conexion.
+
+```bash
+docker-compose up
+```
+
+Variables que usa el servicio `api` dentro de `docker-compose.yml` (no hace falta `.env` para este caso, `MONGODB_URI` ya apunta al servicio `mongo` de la red interna que crea Docker):
+
+- `PORT` (default `3000`)
+- `NODE_ENV` (default `production`)
+- `MONGODB_URI` (fija en `mongodb://mongo:27017/shipnow`)
+
+Si en cambio queres armar y correr solo la imagen de la API, sin compose, necesitas un Mongo accesible por tu cuenta:
+
+```bash
+docker build -t shipnow-api .
+docker run -p 3000:3000 -e PORT=3000 -e NODE_ENV=production -e MONGODB_URI="mongodb://host.docker.internal:27017/shipnow" shipnow-api
+```
 
 ## Endpoints
 
@@ -147,3 +180,4 @@ Cubre Users, Orders, Deliveries, Mocks, Logger, la ruta de Swagger y la carga de
 | POST   | /api/mocks/seed         | Insertar datos de prueba en MongoDB |
 | GET    | /api/logger/test        | Generar un log de cada nivel (debug/http/info/warning/error/fatal) |
 | GET    | /api/docs               | Documentacion interactiva (Swagger UI) |
+| GET    | /api/health             | Estado del servicio y de la conexion a MongoDB |

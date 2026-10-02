@@ -506,6 +506,47 @@ const paths = {
         }
       }
     }
+  },
+  '/api/health': {
+    get: {
+      tags: ['Health'],
+      summary: 'Verificar el estado del servicio',
+      description: 'Chequea que la API este arriba y que la conexion a MongoDB este activa.',
+      responses: {
+        200: {
+          description: 'Servicio y base de datos operativos',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  status: { type: 'string', example: 'ok' },
+                  uptime: { type: 'number', example: 125.43 },
+                  db: { type: 'string', example: 'connected' },
+                  timestamp: { type: 'string', format: 'date-time' }
+                }
+              }
+            }
+          }
+        },
+        503: {
+          description: 'Base de datos no disponible',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  status: { type: 'string', example: 'error' },
+                  uptime: { type: 'number', example: 125.43 },
+                  db: { type: 'string', example: 'disconnected' },
+                  timestamp: { type: 'string', format: 'date-time' }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
   }
 };
 
@@ -524,7 +565,8 @@ const swaggerSpec = {
     { name: 'Orders', description: 'Gestion de pedidos' },
     { name: 'Deliveries', description: 'Gestion de entregas' },
     { name: 'Mocks', description: 'Generacion y carga de datos de prueba' },
-    { name: 'Logger', description: 'Endpoint interno para validar el logger' }
+    { name: 'Logger', description: 'Endpoint interno para validar el logger' },
+    { name: 'Health', description: 'Estado del servicio y de la conexion a la base' }
   ],
   components: { schemas },
   paths
