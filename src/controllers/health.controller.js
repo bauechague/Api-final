@@ -1,15 +1,10 @@
-import mongoose from 'mongoose';
+import healthService from '../services/health.service.js';
 
 class HealthController {
   check(req, res) {
-    const dbConnected = mongoose.connection.readyState === 1;
+    const { ok, status, uptime, db, timestamp } = healthService.getStatus();
 
-    res.status(dbConnected ? 200 : 503).json({
-      status: dbConnected ? 'ok' : 'error',
-      uptime: process.uptime(),
-      db: dbConnected ? 'connected' : 'disconnected',
-      timestamp: new Date().toISOString()
-    });
+    res.status(ok ? 200 : 503).json({ status, uptime, db, timestamp });
   }
 }
 

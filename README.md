@@ -58,7 +58,7 @@ En mocks: `qty` negativo, en cero, no numerico o mayor a 50 devuelve `INVALID_MO
 
 El logger es Winston (`src/config/logger.config.js`), configurado una sola vez ahi y usado desde cualquier archivo importandolo. Niveles, de mas grave a menos: `fatal`, `error`, `warning`, `info`, `http`, `debug`.
 
-En desarrollo (`NODE_ENV=development`) se loguea desde `debug` para arriba, en produccion solo desde `info` (no se ven `http` ni `debug`). Por consola sale todo coloreado. A archivo van dos rotaciones diarias (usa `winston-daily-rotate-file`, maximo 14 dias guardados): `logs/error-<fecha>.log` con solo `error` y `fatal`, y `logs/combined-<fecha>.log` con toda la actividad desde el nivel minimo del ambiente. La carpeta `logs/` esta en el `.gitignore`, no se sube nada de ahi.
+En desarrollo (`NODE_ENV=development`) se loguea desde `debug` para arriba, en produccion solo desde `info` (no se ven `http` ni `debug`). La consola (coloreada) solo esta activa en desarrollo; en test y produccion el logger solo escribe a archivo, para no ensuciar la salida. A archivo van dos rotaciones diarias (usa `winston-daily-rotate-file`, maximo 14 dias guardados): `logs/error-<fecha>.log` con solo `error` y `fatal`, y `logs/combined-<fecha>.log` con toda la actividad desde el nivel minimo del ambiente. La carpeta `logs/` esta en el `.gitignore`, no se sube nada de ahi.
 
 El middleware de errores loguea el `CustomError` (o `ValidationError`/`CastError`) como `warning` (son casos esperados del negocio) y cualquier otro error no controlado como `error`. Una falla al conectar a MongoDB en el arranque se loguea como `fatal`.
 
@@ -68,7 +68,7 @@ Para probar que los 6 niveles anden:
 curl http://localhost:3000/api/logger/test
 ```
 
-Eso tira un log de cada nivel por consola, y los de `error`/`fatal` deberian aparecer tambien en `logs/error-<fecha>.log` (y todos en `logs/combined-<fecha>.log`).
+Eso tira un log de cada nivel (por consola si estas en desarrollo), y los de `error`/`fatal` deberian aparecer tambien en `logs/error-<fecha>.log` (y todos en `logs/combined-<fecha>.log`).
 
 ## Health check
 

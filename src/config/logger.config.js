@@ -29,29 +29,36 @@ const logFormat = winston.format.combine(
   winston.format.printf(({ timestamp, level, message }) => `${timestamp} [${level}] ${message}`)
 );
 
+const transports = [
+  new DailyRotateFile({
+    level: 'error',
+    dirname: 'logs',
+    filename: 'error-%DATE%.log',
+    datePattern: 'YYYY-MM-DD',
+    maxFiles: '14d'
+  }),
+  new DailyRotateFile({
+    level: minLevel,
+    dirname: 'logs',
+    filename: 'combined-%DATE%.log',
+    datePattern: 'YYYY-MM-DD',
+    maxFiles: '14d'
+  })
+];
+
+if (config.nodeEnv === 'development') {
+  transports.push(
+    new winston.transports.Console({
+      format: winston.format.combine(winston.format.colorize({ all: true }), logFormat)
+    })
+  );
+}
+
 const logger = winston.createLogger({
   levels,
   level: minLevel,
   format: logFormat,
-  transports: [
-    new winston.transports.Console({
-      format: winston.format.combine(winston.format.colorize({ all: true }), logFormat)
-    }),
-    new DailyRotateFile({
-      level: 'error',
-      dirname: 'logs',
-      filename: 'error-%DATE%.log',
-      datePattern: 'YYYY-MM-DD',
-      maxFiles: '14d'
-    }),
-    new DailyRotateFile({
-      level: minLevel,
-      dirname: 'logs',
-      filename: 'combined-%DATE%.log',
-      datePattern: 'YYYY-MM-DD',
-      maxFiles: '14d'
-    })
-  ]
+  transports
 });
 
 export default logger;
