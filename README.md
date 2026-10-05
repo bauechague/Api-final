@@ -140,7 +140,7 @@ Las plantillas estan en `.env.example` (desarrollo), `.env.test.example` (tests)
 | `UPLOAD_DIR` | si | `/data/uploads` | Carpeta donde se guardan los archivos subidos (fuera del repo) |
 | `LOG_LEVEL` | no | `info` | Nivel minimo de log. Si no esta, es `debug` en desarrollo y test, e `info` en produccion |
 
-Lo que pide la consigna y no aplica a esta API: JWT no aplica porque todavia no hay autenticacion, y URLs de servicios externos no aplican porque el envio de email esta simulado (solo deja un log de nivel debug).
+El JWT no lo puse porque todavia no hay autenticacion, y no hay URLs de servicios externos porque el envio de email es simulado (solo deja un log de nivel debug).
 
 Al arrancar se validan las obligatorias y que `NODE_ENV` sea uno de los tres valores. Si algo falla, el server no levanta y el mensaje dice cual variable es.
 

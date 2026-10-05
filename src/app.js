@@ -27,7 +27,6 @@ app.use('/api/products', productsRouter);
 app.use('/api/docs', docsRouter);
 app.use('/api/health', healthRouter);
 
-// Herramientas internas: no se montan en produccion
 if (config.nodeEnv !== 'production') {
   app.use('/api/mocks', mocksRouter);
   app.use('/api/logger', loggerRouter);
