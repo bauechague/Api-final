@@ -7,8 +7,8 @@ function resolveStatusFromStock(stock) {
 }
 
 class ProductService {
-  async getAllProducts() {
-    return productRepository.findAll();
+  async getAllProducts(pagination) {
+    return productRepository.findAll(pagination);
   }
 
   async getProductById(id) {

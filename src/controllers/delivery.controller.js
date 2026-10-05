@@ -1,9 +1,10 @@
 import deliveryService from '../services/delivery.service.js';
+import { parsePagination } from '../utils/pagination.util.js';
 
 class DeliveryController {
   async getAll(req, res, next) {
     try {
-      const deliveries = await deliveryService.getAllDeliveries();
+      const deliveries = await deliveryService.getAllDeliveries(parsePagination(req.query));
       res.json(deliveries);
     } catch (error) {
       next(error);

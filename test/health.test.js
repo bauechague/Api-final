@@ -9,8 +9,10 @@ describe('Health', () => {
       expect(res.status).to.equal(200);
       expect(res.body.status).to.equal('ok');
       expect(res.body.db).to.equal('connected');
+      expect(res.body.environment).to.equal('test');
       expect(res.body).to.have.property('uptime');
       expect(res.body).to.have.property('timestamp');
+      expect(res.body).to.not.have.property('mongoUri');
     });
   });
 });

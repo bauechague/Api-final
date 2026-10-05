@@ -22,7 +22,14 @@ const colors = {
 
 winston.addColors(colors);
 
-const minLevel = config.nodeEnv === 'production' ? 'info' : 'debug';
+const defaultLevel = config.nodeEnv === 'production' ? 'info' : 'debug';
+const minLevel = config.logLevel || defaultLevel;
+
+if (!levels[minLevel]) {
+  throw new Error(
+    `LOG_LEVEL invalido: "${minLevel}". Valores permitidos: ${Object.keys(levels).join(', ')}.`
+  );
+}
 
 const logFormat = winston.format.combine(
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),

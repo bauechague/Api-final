@@ -35,6 +35,18 @@ describe('Orders', () => {
       expect(res.status).to.equal(200);
       expect(res.body).to.be.an('array');
     });
+
+    it('respeta limit y page', async () => {
+      const res = await request(app).get('/api/orders?limit=1&page=1');
+      expect(res.status).to.equal(200);
+      expect(res.body).to.be.an('array').with.length.at.most(1);
+    });
+
+    it('rechaza un limit mayor a 100', async () => {
+      const res = await request(app).get('/api/orders?limit=101');
+      expect(res.status).to.equal(400);
+      expect(res.body.error.code).to.equal('INVALID_PAGINATION');
+    });
   });
 
   describe('POST /api/orders', () => {

@@ -1,19 +1,19 @@
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import config from './env.config.js';
 import { CustomError } from '../errors/custom-error.js';
 import { randomSuffix } from '../utils/random.util.js';
 
-const UPLOADS_ROOT = 'uploads';
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
 
 function createUploader(subfolder) {
-  const destination = path.join(UPLOADS_ROOT, subfolder);
-  fs.mkdirSync(destination, { recursive: true });
-
   const storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, destination),
+    destination: (req, file, cb) => {
+      const destination = path.join(config.uploadDir, subfolder);
+      fs.mkdir(destination, { recursive: true }, (error) => cb(error, destination));
+    },
     filename: (req, file, cb) => {
       const generatedName = `${Date.now()}-${randomSuffix(8)}${path.extname(file.originalname)}`;
       cb(null, generatedName);

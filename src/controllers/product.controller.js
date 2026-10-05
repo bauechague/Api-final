@@ -1,9 +1,10 @@
 import productService from '../services/product.service.js';
+import { parsePagination } from '../utils/pagination.util.js';
 
 class ProductController {
   async getAll(req, res, next) {
     try {
-      const products = await productService.getAllProducts();
+      const products = await productService.getAllProducts(parsePagination(req.query));
       res.json(products);
     } catch (error) {
       next(error);

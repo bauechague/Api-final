@@ -4,9 +4,13 @@ services:
     ports:
       - "${PORT:-3000}:3000"
     environment:
+      NODE_ENV: production
       PORT: 3000
-      NODE_ENV: ${NODE_ENV:-production}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      UPLOAD_DIR: /data/uploads
       MONGODB_URI: mongodb://mongo:27017/shipnow
+    volumes:
+      - uploads_data:/data/uploads
     depends_on:
       mongo:
         condition: service_healthy
@@ -23,3 +27,4 @@ services:
 
 volumes:
   mongo_data:
+  uploads_data:

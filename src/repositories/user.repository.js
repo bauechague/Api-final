@@ -4,8 +4,8 @@ import User from '../models/user.model.js';
 const PUBLIC_FIELDS = '-password';
 
 class UserRepository {
-  async findAll(filter = {}) {
-    return User.find(filter).select(PUBLIC_FIELDS).sort({ createdAt: -1 });
+  async findAll({ skip, limit }) {
+    return User.find().select(PUBLIC_FIELDS).sort({ createdAt: -1 }).skip(skip).limit(limit);
   }
 
   async findById(id) {

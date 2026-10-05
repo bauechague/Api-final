@@ -26,10 +26,13 @@ app.use('/api/users', usersRouter);
 app.use('/api/orders', ordersRouter);
 app.use('/api/deliveries', deliveriesRouter);
 app.use('/api/products', productsRouter);
-app.use('/api/mocks', mocksRouter);
-app.use('/api/logger', loggerRouter);
 app.use('/api/docs', docsRouter);
 app.use('/api/health', healthRouter);
+
+if (config.nodeEnv !== 'production') {
+  app.use('/api/mocks', mocksRouter);
+  app.use('/api/logger', loggerRouter);
+}
 
 app.use(notFoundHandler);
 app.use(errorHandler);

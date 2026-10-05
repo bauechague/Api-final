@@ -1,8 +1,8 @@
 import Product from '../models/product.model.js';
 
 class ProductRepository {
-  async findAll(filter = {}) {
-    return Product.find(filter).select('-__v').sort({ createdAt: -1 });
+  async findAll({ skip, limit }) {
+    return Product.find().select('-__v').sort({ createdAt: -1 }).skip(skip).limit(limit);
   }
 
   async findById(id) {

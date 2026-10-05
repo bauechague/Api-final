@@ -6,8 +6,8 @@ import { buildFileMetadata } from '../utils/file-metadata.util.js';
 import { ROLES, DOCUMENT_TYPES } from '../constants/index.js';
 
 class UserService {
-  async getAllUsers() {
-    return userRepository.findAll();
+  async getAllUsers(pagination) {
+    return userRepository.findAll(pagination);
   }
 
   async getUserById(id) {

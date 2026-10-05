@@ -24,5 +24,6 @@ export const ERROR_CODES = Object.freeze({
   INVALID_DOCUMENT_TYPE: { statusCode: 400, message: 'Tipo de documento invalido' },
   FILE_SAVE_FAILED: { statusCode: 500, message: 'No se pudo guardar el archivo' },
   VALIDATION_ERROR: { statusCode: 400, message: 'Datos invalidos' },
+  INVALID_PAGINATION: { statusCode: 400, message: 'Parametros de paginacion invalidos' },
   INTERNAL_SERVER_ERROR: { statusCode: 500, message: 'Error del servidor' }
 });

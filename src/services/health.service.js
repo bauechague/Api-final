@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import config from '../config/env.config.js';
 
 class HealthService {
   getStatus() {
@@ -7,6 +8,7 @@ class HealthService {
     return {
       ok: dbConnected,
       status: dbConnected ? 'ok' : 'error',
+      environment: config.nodeEnv,
       uptime: process.uptime(),
       db: dbConnected ? 'connected' : 'disconnected',
       timestamp: new Date().toISOString()

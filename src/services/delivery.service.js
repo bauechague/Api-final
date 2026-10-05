@@ -8,8 +8,8 @@ import { buildFileMetadata } from '../utils/file-metadata.util.js';
 import { ROLES, ORDER_STATUS, DELIVERY_STATUS, PRIORITY } from '../constants/index.js';
 
 class DeliveryService {
-  async getAllDeliveries() {
-    return deliveryRepository.findAll();
+  async getAllDeliveries(pagination) {
+    return deliveryRepository.findAll(pagination);
   }
 
   async getDeliveryById(id) {

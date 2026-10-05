@@ -5,8 +5,8 @@ import logger from '../config/logger.config.js';
 import { ROLES, ORDER_STATUS, PRIORITY } from '../constants/index.js';
 
 class OrderService {
-  async getAllOrders() {
-    return orderRepository.findAll();
+  async getAllOrders(pagination) {
+    return orderRepository.findAll(pagination);
   }
 
   async getOrderById(id) {

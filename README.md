@@ -9,7 +9,7 @@ npm install
 cp .env.example .env
 ```
 
-Completar el `.env` con `PORT`, `MONGODB_URI` y `NODE_ENV`. Si falta alguna, el server no arranca y tira un error diciendo cual falta.
+Completar el `.env` con las variables de la seccion *Produccion y Docker* (las obligatorias son `PORT`, `MONGODB_URI`, `NODE_ENV` y `UPLOAD_DIR`). Si falta alguna, o `NODE_ENV` tiene un valor que no es valido, el server no arranca y tira un error diciendo cual es.
 
 ```bash
 npm run dev
@@ -58,7 +58,7 @@ En mocks: `qty` negativo, en cero, no numerico o mayor a 50 devuelve `INVALID_MO
 
 El logger es Winston (`src/config/logger.config.js`), configurado una sola vez ahi y usado desde cualquier archivo importandolo. Niveles, de mas grave a menos: `fatal`, `error`, `warning`, `info`, `http`, `debug`.
 
-En desarrollo (`NODE_ENV=development`) se loguea desde `debug` para arriba, en produccion solo desde `info` (no se ven `http` ni `debug`). La consola (coloreada) solo esta activa en desarrollo; en test y produccion el logger solo escribe a archivo, para no ensuciar la salida. A archivo van dos rotaciones diarias (usa `winston-daily-rotate-file`, maximo 14 dias guardados): `logs/error-<fecha>.log` con solo `error` y `fatal`, y `logs/combined-<fecha>.log` con toda la actividad desde el nivel minimo del ambiente. La carpeta `logs/` esta en el `.gitignore`, no se sube nada de ahi.
+En desarrollo (`NODE_ENV=development`) se loguea desde `debug` para arriba, en produccion solo desde `info` (no se ven `http` ni `debug`). La consola (coloreada) solo esta activa en desarrollo; en test y produccion el logger solo escribe a archivo, para no ensuciar la salida. A archivo van dos rotaciones diarias (usa `winston-daily-rotate-file`, maximo 14 dias guardados): `logs/error-<fecha>.log` con solo `error` y `fatal`, y `logs/combined-<fecha>.log` con toda la actividad desde el nivel minimo del ambiente. La carpeta `logs/` esta en el `.gitignore`, no se sube nada de ahi. Si queres otro nivel minimo, `LOG_LEVEL` pisa el default del ambiente.
 
 El middleware de errores loguea el `CustomError` (o `ValidationError`/`CastError`) como `warning` (son casos esperados del negocio) y cualquier otro error no controlado como `error`. Una falla al conectar a MongoDB en el arranque se loguea como `fatal`.
 
@@ -78,13 +78,13 @@ Lo deje como ruta aparte del resto (`src/routes/health.routes.js` con su propio 
 curl http://localhost:3000/api/health
 ```
 
-Con la base conectada responde `200` con `{ "status": "ok", "uptime": ..., "db": "connected", "timestamp": ... }`. Si Mongo se cayo responde `503` con `status` y `db` en `error`/`disconnected`.
+Con la base conectada responde `200` con `{ "status": "ok", "environment": "...", "uptime": ..., "db": "connected", "timestamp": ... }`. No muestra la URI de la base ni credenciales. Si Mongo se cayo responde `503` con `status` y `db` en `error`/`disconnected`.
 
 ## Carga de archivos
 
 Multer esta configurado en un solo lugar, `src/config/multer.config.js`, separado de las rutas: ahi se define donde se guarda cada archivo, como se le pone nombre (timestamp + sufijo random + extension original, para no pisar archivos ni depender del nombre que mande el cliente), que tipos de archivo se aceptan (`application/pdf`, `image/jpeg`, `image/png`, `image/webp`) y el tamano maximo (5MB). Las rutas solo importan el middleware ya armado.
 
-Los archivos quedan en `uploads/`, con una subcarpeta por entidad (`uploads/users`, `uploads/deliveries`), creadas solas la primera vez que se sube algo. `uploads/` esta en el `.gitignore`, no sube nada al repo.
+Los archivos no se guardan dentro del repo: van a la carpeta que indica `UPLOAD_DIR`, con una subcarpeta por entidad (`users` y `deliveries`), creadas solas la primera vez que se sube algo. Como esa carpeta queda afuera del proyecto, ningun archivo subido puede terminar en el repo.
 
 En Mongo solo se guardan los metadatos (`originalName`, `generatedName`, `path`, `mimeType`, `size`, `documentType`, `uploadedAt`), nunca el archivo. Esta forma esta en `src/models/file-metadata.schema.js`, compartida entre `User` (array `documents`) y `Delivery` (campo `receipt`).
 
@@ -124,32 +124,107 @@ Completar `.env.test` con un `MONGODB_URI` que apunte a una base de test (por ej
 npm test
 ```
 
-Cubre Users, Orders, Deliveries, Mocks, Logger, Health, la ruta de Swagger y la carga de archivos, con casos exitosos y de error (400/403/404/409 segun corresponda), chequeando siempre el status y el body, no solo que responda. Cada archivo en `test/` crea los datos que necesita (usuarios validos antes de pedidos, pedidos en `created` antes de entregas, etc) y al terminar borra lo que creo, incluidos los archivos subidos a `uploads/`; al final de toda la corrida, `test/setup.js` dropea la base de test entera como limpieza general.
+Cubre Users, Orders, Deliveries, Mocks, Logger, Health, la ruta de Swagger y la carga de archivos, con casos exitosos y de error (400/403/404/409 segun corresponda), chequeando siempre el status y el body, no solo que responda. Cada archivo en `test/` crea los datos que necesita (usuarios validos antes de pedidos, pedidos en `created` antes de entregas, etc) y al terminar borra lo que creo, incluidos los archivos subidos a `UPLOAD_DIR`; al final de toda la corrida, `test/setup.js` dropea la base de test entera como limpieza general.
 
-## Docker
+## Produccion y Docker
 
-Arme el `Dockerfile` en dos etapas: una instala las dependencias de produccion (`npm ci --omit=dev`) y la otra copia solo esos `node_modules` y el codigo de `src`, sin devDependencies ni archivos de desarrollo (lo que no tiene que entrar en la imagen esta en `.dockerignore`).
+### Variables de entorno
 
-Con `docker-compose up` se levanta la API junto con su propia instancia de MongoDB, sin depender de tener Mongo instalado aparte. Le puse `healthcheck` al servicio de Mongo y `depends_on: condition: service_healthy` en la API para que no intente conectarse hasta que la base este realmente lista, porque si no con mala suerte la API arranca mientras Mongo todavia esta inicializando y explota la conexion.
+Las plantillas estan en `.env.example` (desarrollo), `.env.test.example` (tests) y `.env.production.example` (produccion). No hay ningun valor sensible escrito en el codigo: las credenciales van en el `.env` o en el entorno del contenedor.
+
+| Variable | Obligatoria | Ejemplo | Para que sirve |
+|---|---|---|---|
+| `PORT` | si | `3000` | Puerto donde escucha la API |
+| `MONGODB_URI` | si | `mongodb://localhost:27017/shipnow` | Conexion a MongoDB |
+| `NODE_ENV` | si | `production` | Entorno: `development`, `test` o `production` |
+| `UPLOAD_DIR` | si | `/data/uploads` | Carpeta donde se guardan los archivos subidos (fuera del repo) |
+| `LOG_LEVEL` | no | `info` | Nivel minimo de log. Si no esta, es `debug` en desarrollo y test, e `info` en produccion |
+
+Lo que pide la consigna y no aplica a esta API: JWT no aplica porque todavia no hay autenticacion, y URLs de servicios externos no aplican porque el envio de email esta simulado (solo deja un log de nivel debug).
+
+Al arrancar se validan las obligatorias y que `NODE_ENV` sea uno de los tres valores. Si algo falla, el server no levanta y el mensaje dice cual variable es.
+
+### Correr localmente
+
+```bash
+npm install
+cp .env.example .env
+npm run dev
+```
+
+### Correr los tests
+
+Los tests usan su propia base y su propio archivo de entorno, asi que no tocan la de desarrollo:
+
+```bash
+cp .env.test.example .env.test
+npm test
+```
+
+### Swagger
+
+Con la API levantada: `http://localhost:3000/api/docs` (cambia el puerto si usas otro `PORT`).
+
+### Puerto
+
+La API escucha en `PORT`. En el contenedor el puerto es el `3000` (`EXPOSE 3000` en el `Dockerfile`), y es el que se publica con `-p 3000:3000` o con el compose.
+
+### Construir la imagen
+
+El `Dockerfile` tiene dos etapas: una instala solo las dependencias de produccion (`npm ci --omit=dev`) y la otra copia esos `node_modules` mas el codigo de `src`. Lo que no tiene que entrar en la imagen esta en `.dockerignore`.
+
+```bash
+docker build -t shipnow-api .
+```
+
+### Ejecutar el contenedor
+
+Copia la plantilla, completala (sobre todo `MONGODB_URI`, que tiene que apuntar a una base accesible desde el contenedor) y corre la imagen con ese archivo. Los uploads van a un volumen para que no se pierdan al recrear el contenedor:
+
+```bash
+cp .env.production.example .env.production
+docker run -p 3000:3000 --env-file .env.production -v shipnow_uploads:/data/uploads shipnow-api
+```
+
+Si preferis pasar las variables una por una, `PORT`, `NODE_ENV` y `UPLOAD_DIR` ya tienen default en el `Dockerfile`, asi que alcanza con:
+
+```bash
+docker run -p 3000:3000 -e MONGODB_URI="mongodb://host.docker.internal:27017/shipnow" -v shipnow_uploads:/data/uploads shipnow-api
+```
+
+Con `docker-compose up` se levanta la API junto con su propia instancia de MongoDB. El servicio de Mongo tiene `healthcheck` y la API tiene `depends_on: condition: service_healthy`, asi no arranca mientras la base todavia esta inicializando. Los uploads quedan en el volumen `uploads_data`.
 
 ```bash
 docker-compose up
 ```
 
-Variables que usa el servicio `api` dentro de `docker-compose.yml` (no hace falta `.env` para este caso, `MONGODB_URI` ya apunta al servicio `mongo` de la red interna que crea Docker):
+Para probar que esta arriba: `curl http://localhost:3000/api/health`, y Swagger en `http://localhost:3000/api/docs`.
 
-- `PORT` (default `3000`)
-- `NODE_ENV` (default `production`)
-- `MONGODB_URI` (fija en `mongodb://mongo:27017/shipnow`)
+### Criterio sobre endpoints internos
 
-Si en cambio queres armar y correr solo la imagen de la API, sin compose, necesitas un Mongo accesible por tu cuenta:
+- `/api/mocks/*` y `/api/logger/test` solo se montan en `development` y `test`. En `production` no existen y responden `404` (`ROUTE_NOT_FOUND`). El motivo es que los mocks escriben en la base y el logger test ensucia el log de produccion.
+- `/api/health` queda disponible en todos los entornos, porque no expone datos sensibles.
+- `/api/docs` (Swagger) queda disponible en todos los entornos: es solo documentacion, sin datos ni credenciales.
 
-```bash
-docker build -t shipnow-api .
-docker run -p 3000:3000 -e PORT=3000 -e NODE_ENV=production -e MONGODB_URI="mongodb://host.docker.internal:27017/shipnow" shipnow-api
-```
+### Logs y uploads
+
+- Logs: en `development` la consola sale coloreada. En `test` y `production` no sale nada por consola y todo va a archivo (`logs/error-<fecha>.log` y `logs/combined-<fecha>.log`). La carpeta `logs/` no se sube al repo ni a la imagen.
+- Uploads: se guardan en `UPLOAD_DIR`, fuera del repo. El limite es de 5MB y solo se aceptan PDF, JPG, PNG y WEBP. En Mongo solo queda la metadata. Esto no es almacenamiento permanente pensado para produccion seria: el archivo queda en el disco del servidor (en Docker, en el volumen `uploads_data`). Si se escala a varias instancias o hace falta persistencia real, habria que pasarlo a un storage externo.
+- Body de las requests JSON: Express lo limita a 100kb por defecto.
+
+### Archivos que no se suben al repo
+
+- `node_modules/`
+- `.env`, `.env.test` y `.env.production` (los reales, con credenciales)
+- `logs/`
+- la carpeta de `UPLOAD_DIR` si queda dentro del proyecto
+- `coverage/` y temporales (`tmp/`, `*.tmp`)
+
+Todo eso esta en el `.gitignore`, y el `.dockerignore` lo excluye de la imagen.
 
 ## Endpoints
+
+Los listados (`GET /api/users`, `/api/orders`, `/api/deliveries` y `/api/products`) no devuelven la coleccion completa: traen 20 por defecto y se pueden pedir con `?page=` y `?limit=` (maximo 100). Un valor invalido devuelve `INVALID_PAGINATION`.
 
 | Metodo | Ruta                    | Descripcion              |
 |--------|-------------------------|--------------------------|

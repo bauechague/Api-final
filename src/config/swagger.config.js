@@ -170,6 +170,25 @@ const qtyParam = {
   schema: { type: 'integer', example: 5 }
 };
 
+const paginationParams = [
+  {
+    name: 'page',
+    in: 'query',
+    required: false,
+    description: 'Pagina a devolver. Entero mayor o igual a 1. Default 1.',
+    schema: { type: 'integer', minimum: 1, example: 1 }
+  },
+  {
+    name: 'limit',
+    in: 'query',
+    required: false,
+    description: 'Cantidad de resultados por pagina. Entero entre 1 y 100. Default 20.',
+    schema: { type: 'integer', minimum: 1, maximum: 100, example: 20 }
+  }
+];
+
+const paginationError = errorResponse('Parametros de paginacion invalidos', 'INVALID_PAGINATION', 'Parametros de paginacion invalidos');
+
 const idParam = (name, example) => ({
   name,
   in: 'path',
@@ -182,11 +201,13 @@ const paths = {
     get: {
       tags: ['Users'],
       summary: 'Listar usuarios',
+      parameters: paginationParams,
       responses: {
         200: {
           description: 'Lista de usuarios',
           content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/User' } } } }
-        }
+        },
+        400: paginationError
       }
     },
     post: {
@@ -264,8 +285,10 @@ const paths = {
     get: {
       tags: ['Orders'],
       summary: 'Listar pedidos',
+      parameters: paginationParams,
       responses: {
-        200: { description: 'Lista de pedidos', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/Order' } } } } }
+        200: { description: 'Lista de pedidos', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/Order' } } } } },
+        400: paginationError
       }
     },
     post: {
@@ -338,8 +361,10 @@ const paths = {
     get: {
       tags: ['Deliveries'],
       summary: 'Listar entregas',
+      parameters: paginationParams,
       responses: {
-        200: { description: 'Lista de entregas', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/Delivery' } } } } }
+        200: { description: 'Lista de entregas', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/Delivery' } } } } },
+        400: paginationError
       }
     },
     post: {
@@ -511,7 +536,7 @@ const paths = {
     get: {
       tags: ['Health'],
       summary: 'Verificar el estado del servicio',
-      description: 'Chequea que la API este arriba y que la conexion a MongoDB este activa.',
+      description: 'Chequea que la API este arriba y que la conexion a MongoDB este activa. No expone datos sensibles (ni la URI de la base ni credenciales).',
       responses: {
         200: {
           description: 'Servicio y base de datos operativos',
@@ -521,6 +546,7 @@ const paths = {
                 type: 'object',
                 properties: {
                   status: { type: 'string', example: 'ok' },
+                  environment: { type: 'string', example: 'production' },
                   uptime: { type: 'number', example: 125.43 },
                   db: { type: 'string', example: 'connected' },
                   timestamp: { type: 'string', format: 'date-time' }
@@ -537,6 +563,7 @@ const paths = {
                 type: 'object',
                 properties: {
                   status: { type: 'string', example: 'error' },
+                  environment: { type: 'string', example: 'production' },
                   uptime: { type: 'number', example: 125.43 },
                   db: { type: 'string', example: 'disconnected' },
                   timestamp: { type: 'string', format: 'date-time' }
@@ -564,8 +591,8 @@ const swaggerSpec = {
     { name: 'Users', description: 'Gestion de usuarios' },
     { name: 'Orders', description: 'Gestion de pedidos' },
     { name: 'Deliveries', description: 'Gestion de entregas' },
-    { name: 'Mocks', description: 'Generacion y carga de datos de prueba' },
-    { name: 'Logger', description: 'Endpoint interno para validar el logger' },
+    { name: 'Mocks', description: 'Generacion y carga de datos de prueba. Solo disponible fuera de produccion.' },
+    { name: 'Logger', description: 'Endpoint interno para validar el logger. Solo disponible fuera de produccion.' },
     { name: 'Health', description: 'Estado del servicio y de la conexion a la base' }
   ],
   components: { schemas },

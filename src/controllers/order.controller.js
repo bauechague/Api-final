@@ -1,9 +1,10 @@
 import orderService from '../services/order.service.js';
+import { parsePagination } from '../utils/pagination.util.js';
 
 class OrderController {
   async getAll(req, res, next) {
     try {
-      const orders = await orderService.getAllOrders();
+      const orders = await orderService.getAllOrders(parsePagination(req.query));
       res.json(orders);
     } catch (error) {
       next(error);

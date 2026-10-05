@@ -1,8 +1,8 @@
 import Order from '../models/order.model.js';
 
 class OrderRepository {
-  async findAll() {
-    return Order.find();
+  async findAll({ skip, limit }) {
+    return Order.find().sort({ createdAt: -1 }).skip(skip).limit(limit);
   }
 
   async findById(id) {

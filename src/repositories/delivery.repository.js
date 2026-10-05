@@ -1,8 +1,8 @@
 import Delivery from '../models/delivery.model.js';
 
 class DeliveryRepository {
-  async findAll() {
-    return Delivery.find();
+  async findAll({ skip, limit }) {
+    return Delivery.find().sort({ createdAt: -1 }).skip(skip).limit(limit);
   }
 
   async findById(id) {
